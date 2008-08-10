@@ -1,4 +1,4 @@
-" metarw - a framework to read/write a fake:path
+" ku special source: metarw
 " Version: 0.0.1
 " Copyright (C) 2008 kana <http://whileimautomaton.net/>
 " License: MIT license  {{{
@@ -22,27 +22,16 @@
 "     SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 " }}}
 
-if exists('g:loaded_metarw')
-  finish
-endif
 
 
 
-
-augroup plugin-metarw
-  autocmd!
-  autocmd BufReadCmd ??*:{*,*/*}  call metarw#_event_handler('BufReadCmd')
-  autocmd BufWriteCmd ??*:{*,*/*}  call metarw#_event_handler('BufWriteCmd')
-  autocmd FileAppendCmd ??*:{*,*/*}  call metarw#_event_handler('FileAppendCmd')
-  autocmd FileReadCmd ??*:{*,*/*}  call metarw#_event_handler('FileReadCmd')
-  autocmd FileWriteCmd ??*:{*,*/*}  call metarw#_event_handler('FileWriteCmd')
-  autocmd SourceCmd ??*:{*,*/*}  call metarw#_event_handler('SourceCmd')
-augroup END
+function! ku#special#metarw_#sources()
+  return map(split(globpath(&runtimepath, 'autoload/metarw/*.vim'), '\n'),
+  \          '"metarw-" . fnamemodify(v:val, ":t:r")')
+endfunction
 
 
 
-
-let g:loaded_metarw = 1
 
 " __END__
 " vim: foldmethod=marker

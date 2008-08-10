@@ -1,4 +1,4 @@
-" Vim syntax: metarw - for content browser of metarw
+" ku special source: metarw
 " Version: 0.0.1
 " Copyright (C) 2008 kana <http://whileimautomaton.net/>
 " License: MIT license  {{{
@@ -21,37 +21,9 @@
 "     TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 "     SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 " }}}
+" Variables  "{{{1
 
-if exists('b:current_syntax')
-  finish
-endif
-
-
-
-
-
-
-
-
-syntax clear
-
-syntax case match
-
-
-
-
-  " not to override metarwCurrentPath by metarwDirectoryIsh.
-syntax match metarwDirectoryIsh /.*\/$/
-
-syntax match metarwTitle /^\%1l.*$/
-syntax match metarwCurrentPath /^\%2l.*$/
-
-
-
-
-highlight default link metarwTitle Comment
-highlight default link metarwCurrentPath Title
-highlight default link metarwDirectoryIsh Directory
+let s:current_scheme = ''
 
 
 
@@ -60,7 +32,56 @@ highlight default link metarwDirectoryIsh Directory
 
 
 
-let b:current_syntax = 'metarw'
+" Interface  "{{{1
+function! ku#special#metarw#event_handler(event, ...)  "{{{2
+  if a:event ==# 'SourceEnter'
+    let s:current_scheme = matchstr(a:1, '-\zs.*$')
+  elseif a:event ==# 'SourceLeave'
+    " Don't clear - keep the value for BeforeAction.
+    " Because SourceLeave is always published before BeforeAction.
+    "
+    " let s:current_scheme = ''
+  elseif a:event ==# 'BeforeAction'
+    " See also ku#special#metarw#gather_items().
+    let _ = copy(a:1)
+    let _.word = s:current_scheme . ':' . _.word
+    return _
+  else
+    return call('ku#default_event_handler', [a:event] + a:000)
+  endif
+endfunction
 
-" __END__
+
+
+
+function! ku#special#metarw#action_table()  "{{{2
+  return ku#file#action_table()
+endfunction
+
+
+
+
+function! ku#special#metarw#key_table()  "{{{2
+  return ku#file#key_table()
+endfunction
+
+
+
+
+function! ku#special#metarw#gather_items(pattern)  "{{{2
+  " FIXME: caching - but each scheme may already do caching.
+  " a:pattern is not always prefixed with "{scheme}:".
+  let _ = s:current_scheme . ':' . a:pattern
+  return map(metarw#{s:current_scheme}#complete(_, _, 0)[0],
+  \          '{"word": matchstr(v:val, "^" . s:current_scheme . '':\zs.*$'')}')
+endfunction
+
+
+
+
+
+
+
+
+" __END__  "{{{1
 " vim: foldmethod=marker
