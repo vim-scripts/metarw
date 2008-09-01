@@ -1,5 +1,5 @@
 " metarw - a framework to read/write a fake:path
-" Version: 0.0.2
+" Version: 0.0.3
 " Copyright (C) 2008 kana <http://whileimautomaton.net/>
 " License: MIT license  {{{
 "     Permission is hereby granted, free of charge, to any person obtaining
@@ -135,20 +135,13 @@ endfunction
 
 function! s:on_BufWriteCmd(scheme, fakepath)  "{{{3
   " BufWriteCmd is published by :write or other commands with 1,$ range.
-  let _ = metarw#{a:scheme}#write(a:fakepath, 1, line('$'), s:FALSE)
-  if _[0] !=# 'error' && a:fakepath ==# bufname('')
-    " The whole buffer has been saved to the current fakepath,
-    " so 'modified' should be reset.
-    setlocal nomodified
-  endif
-  return _
+  return s:write(a:scheme, a:fakepath, 1, line('$'), 'BufWriteCmd')
 endfunction
 
 
 function! s:on_FileAppendCmd(scheme, fakepath)  "{{{3
   " FileAppendCmd is published by :write or other commands with >>.
-  return metarw#{a:scheme}#write(a:fakepath, line("'["), line("']"),
-  \                              s:TRUE)
+  return s:write(a:scheme, a:fakepath, line("'["), line("']"), 'FileAppendCmd')
 endfunction
 
 
@@ -170,8 +163,7 @@ endfunction
 function! s:on_FileWriteCmd(scheme, fakepath)  "{{{3
   " FileWriteCmd is published by :write or other commands with partial range
   " such as 1,2 where 2 < line('$').
-  return metarw#{a:scheme}#write(a:fakepath, line("'["), line("']"),
-  \                              s:FALSE)
+  return s:write(a:scheme, a:fakepath, line("'["), line("']"), 'FileWriteCmd')
 endfunction
 
 
@@ -296,6 +288,27 @@ function! s:open_item(split_command)
 
   edit `=b:metarw_items[i].fakepath`
   return
+endfunction
+
+
+
+
+function! s:write(scheme, fakepath, line1, line2, event_name)  "{{{2
+  let _ = metarw#{a:scheme}#write(a:fakepath, a:line1, a:line2,
+  \                               a:event_name ==# 'FileAppendCmd')
+  if _[0] ==# 'write'
+    execute a:line1 ',' a:line2 'write' v:cmdarg _[1]
+    if v:shell_error != 0
+      let _ = ['error', 'Failed to write: ' . string(a:fakepath)]
+    endif
+  endif
+  if _[0] !=# 'error'
+  \  && a:event_name ==# 'BufWriteCmd' && a:fakepath ==# bufname('')
+    " The whole buffer has been saved to the current fakepath, so 'modified'
+    " should be reset.
+    setlocal nomodified
+  endif
+  return _
 endfunction
 
 
